@@ -1,0 +1,6 @@
+clips/
+processed/
+client_secret.json
+token.json
+queue.json
+__pycache__/

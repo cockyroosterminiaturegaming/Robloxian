@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+"""Sort clips, lower audio pitch, and build the upload queue.
+
+Usage: python prepare.py
+Reads config.json. Safe to re-run: already-processed clips are skipped,
+and existing queue entries (and their upload status) are preserved.
+"""
+import json, re, subprocess, sys
+from pathlib import Path
+
+cfg = json.loads(Path("config.json").read_text())
+src, dst = Path(cfg["clips_dir"]), Path(cfg["processed_dir"])
+qfile = Path(cfg["queue_file"])
+ratio = cfg["pitch_ratio"]
+dst.mkdir(exist_ok=True)
+
+def natural(p):
+    return [int(t) if t.isdigit() else t.lower() for t in re.split(r"(\d+)", p.name)]
+
+def sample_rate(f):
+    out = subprocess.run(
+        ["ffprobe", "-v", "error", "-select_streams", "a:0", "-show_entries",
+         "stream=sample_rate", "-of", "csv=p=0", str(f)],
+        capture_output=True, text=True).stdout.strip()
+    return int(out) if out else None
+
+def shift(f, out):
+    sr = sample_rate(f)
+    if sr is None:  # no audio track: just copy
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(f), "-c", "copy", str(out)], check=True)
+        return
+    af = f"asetrate={sr}*{ratio},aresample={sr},atempo={1/ratio:.6f}"
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error", "-i", str(f), "-c:v", "copy",
+         "-af", af, "-c:a", "aac", "-b:a", "192k", str(out)], check=True)
+
+queue = json.loads(qfile.read_text()) if qfile.exists() else []
+known = {q["source"] for q in queue}
+clips = sorted((p for p in src.iterdir() if p.suffix.lower() in {".mp4", ".mov", ".mkv", ".webm"}), key=natural)
+
+for p in clips:
+    out = dst / (p.stem + ".mp4")
+    if not out.exists():
+        print("processing", p.name)
+        try:
+            shift(p, out)
+        except subprocess.CalledProcessError:
+            print("FAILED", p.name, file=sys.stderr)
+            out.unlink(missing_ok=True)
+            continue
+    if p.name not in known:
+        queue.append({"source": p.name, "file": str(out), "uploaded": False, "video_id": None})
+
+for i, q in enumerate(queue, 1):
+    q["n"] = i
+qfile.write_text(json.dumps(queue, indent=2))
+print(f"{len(queue)} clips in queue, {sum(not q['uploaded'] for q in queue)} pending")

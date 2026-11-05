@@ -1,0 +1,12 @@
+{
+  "clips_dir": "clips",
+  "processed_dir": "processed",
+  "queue_file": "queue.json",
+  "pitch_ratio": 0.85,
+  "title_template": "Roblox Moment #{n} #Shorts",
+  "description": "Roblox funny moments and highlights. Subscribe for more!\n\n#Shorts #Roblox #RobloxClips",
+  "tags": ["roblox", "roblox shorts", "roblox funny moments", "gaming"],
+  "category_id": "20",
+  "privacy": "public",
+  "made_for_kids": false
+}
