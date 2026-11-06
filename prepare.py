@@ -11,8 +11,9 @@ from pathlib import Path
 cfg = json.loads(Path("config.json").read_text())
 src, dst = Path(cfg["clips_dir"]), Path(cfg["processed_dir"])
 qfile = Path(cfg["queue_file"])
-ratio = cfg["pitch_ratio"]
-dst.mkdir(exist_ok=True)
+ratio = cfg.get("pitch_ratio")  # null = clips already pitch-shifted, skip processing
+if ratio is not None:
+    dst.mkdir(exist_ok=True)
 
 def age_key(p):
     s = p.stat()
@@ -41,8 +42,11 @@ known = {q["source"] for q in queue}
 clips = sorted((p for p in src.iterdir() if p.suffix.lower() in {".mp4", ".mov", ".mkv", ".webm"}), key=age_key)
 
 for p in clips:
-    out = dst / (p.stem + ".mp4")
-    if not out.exists():
+    if ratio is None:  # clips already processed: queue the originals as-is
+        out = p
+    else:
+        out = dst / (p.stem + ".mp4")
+    if ratio is not None and not out.exists():
         print("processing", p.name)
         try:
             shift(p, out)
@@ -51,7 +55,7 @@ for p in clips:
             out.unlink(missing_ok=True)
             continue
     if p.name not in known:
-        queue.append({"source": p.name, "file": str(out), "uploaded": False, "video_id": None})
+        queue.append({"source": p.name, "file": str(out.resolve()), "uploaded": False, "video_id": None})
 
 for i, q in enumerate(queue, 1):
     q["n"] = i

@@ -2,7 +2,7 @@
   "clips_dir": "C:\\Roblox Boss",
   "processed_dir": "processed",
   "queue_file": "queue.json",
-  "pitch_ratio": 0.85,
+  "pitch_ratio": null,
   "title_template": "Roblox Moment #{n} #Shorts",
   "description": "Roblox funny moments and highlights. Subscribe for more!\n\n#Shorts #Roblox #RobloxClips",
   "tags": [
