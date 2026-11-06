@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sort clips, lower audio pitch, and build the upload queue.
+"""Sort clips oldest to newest, lower audio pitch, and build the upload queue.
 
 Usage: python prepare.py
 Reads config.json. Safe to re-run: already-processed clips are skipped,
@@ -14,8 +14,10 @@ qfile = Path(cfg["queue_file"])
 ratio = cfg["pitch_ratio"]
 dst.mkdir(exist_ok=True)
 
-def natural(p):
-    return [int(t) if t.isdigit() else t.lower() for t in re.split(r"(\d+)", p.name)]
+def age_key(p):
+    s = p.stat()
+    t = s.st_ctime if cfg.get("sort_by") == "created" and sys.platform == "win32" else s.st_mtime
+    return (t, p.name.lower())  # oldest first, name breaks ties
 
 def sample_rate(f):
     out = subprocess.run(
@@ -36,7 +38,7 @@ def shift(f, out):
 
 queue = json.loads(qfile.read_text()) if qfile.exists() else []
 known = {q["source"] for q in queue}
-clips = sorted((p for p in src.iterdir() if p.suffix.lower() in {".mp4", ".mov", ".mkv", ".webm"}), key=natural)
+clips = sorted((p for p in src.iterdir() if p.suffix.lower() in {".mp4", ".mov", ".mkv", ".webm"}), key=age_key)
 
 for p in clips:
     out = dst / (p.stem + ".mp4")

@@ -8,8 +8,8 @@ Run this on **your own computer** (the clips are local).
 2. Google Cloud Console: create a project, enable **YouTube Data API v3**, create an
    **OAuth client ID (Desktop app)**, download it as `client_secret.json` into this folder.
    Add your Google account as a test user on the OAuth consent screen.
-3. Put clips in `clips/` (names sort naturally: clip1, clip2, clip10...).
-   Rename them first if you want a specific upload order.
+3. Put clips in `clips/` (set `clips_dir` in config.json; currently `C:\Roblox Boss`).
+   Clips upload oldest to newest by date modified (`"sort_by": "created"` in config.json uses creation date on Windows).
 4. `python prepare.py`   - pitch-shifts all clips into `processed/` and builds `queue.json`.
    Listen to a few in `processed/` before continuing.
 5. `python upload_next.py --auth`   - log in once; saves `token.json`.
